@@ -1,4 +1,4 @@
-package com.kosta.jdbc;
+package com.Test;
 
 import java.util.List;
 import java.util.Scanner;
@@ -25,20 +25,28 @@ public class BookApp
 				}
 				break;
 			case 2:
-				BookVo vo1 = new BookVo(0, "타이틀", "pubs", "pub_date", "author_id");
-				System.out.println("입력 : id title pubs pub_date author_id");
-				String insertb = sc.next();
+				//String sql = "INSERT INTO book " + "VALUES(SEQ_BOOK_ID.NEXTVAL, " + "?, ?, ?, ?)";
+				BookVo vo1 = new BookVo(0, "title", "pubs", "pub_date", "author_id");  
+				System.out.print("id : ");
+				int inId = sc.nextInt();
+
+				System.out.print("title : ");
+				String inTitle = sc.next();
+				
+				System.out.print("pubs : ");
+				String inPubs = sc.next();
+				
+				System.out.print("pub_date : ");
+				String inPubDate = sc.next();
+				
+				System.out.print("author_id : ");
+				String inAuthorId = sc.next();
 				dao.insert(vo1);
-				System.out.println("완료!");
+				
 				break;
 			case 3:
 				BookVo vo2 = new BookVo(0, "타이틀", "pubs", "pub_date", "author_id");
-				System.out.println("번호,저자명, 저자설명");
-				String updatemunja = sc.next();
-				String updatemunja2 = sc.next();
-				String updatemunja3 = sc.next();
-				String updatemunja4 = sc.next();
-				String updatemunja5 = sc.next();
+				System.out.println(" Book_Id | Title | Pubs | Pub_Date | Author_Id ");
 				
 				dao.update(vo2);
 				break;
@@ -54,8 +62,9 @@ public class BookApp
 				dao.search(vo3);
 			case 6: 
 				System.out.println("종료");
+				break;
 			default:
-				System.out.println("잘못 입력 or 오류");
+				System.out.println("다시 입력");
 				break;
 			}
 
