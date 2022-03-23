@@ -1,4 +1,4 @@
-package com.kosta.jdbc;
+package com.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,35 +10,40 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-public class BookDaoImpl implements BookDao
-{
+public class BookDaoImpl implements BookDao {
 
-	private Connection getConnection() throws SQLException
-	{
+	private Connection getConnection() throws SQLException {
 		Connection conn = null;
-		try
-		{
+		try {
 			Class.forName("oracle.jdbc.driver.OracleDriver");
 			String dburl = "jdbc:oracle:thin:@localhost:1521:xe";
 			conn = DriverManager.getConnection(dburl, "webdb", "1234");
-		} catch (ClassNotFoundException e)
-		{
+		} catch (ClassNotFoundException e) {
 			System.err.println("JDBC 드라이버 로드 실패!");
 		}
 		return conn;
 	}
 
-	public boolean search(BookVo bookVo)
-	{
+	// search
+	public boolean search(BookVo bookVo) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
-		int searchedCount = 0;
+
 		Scanner sc = new Scanner(System.in);
 		System.out.print("찾고자 하는 저자의 이름을 입력 하세요 >> ");
 		String inputName = sc.nextLine();
-		try
-			{
+
+		if (!inputName.equals(null) || !"".equals(inputName)) {
+
+			try {
+				// 1. JDBC 드라이버 (Oracle) 로딩
+				Class.forName("oracle.jdbc.driver.OracleDriver");
+
+				// 2. Connection 얻어오기
+				String url = "jdbc:oracle:thin:@localhost:1521:xe";
+				conn = DriverManager.getConnection(url, "webdb", "1234");
+
 				// 3. SQL문 준비 / 바인딩 / 실행
 				String query = " SELECT title, pubs, to_char(pub_date,'YYYY/MM/DD') pub_date, author_name \r\n"
 						+ " FROM book b, author a \r\n" + " WHERE b.AUTHOR_ID = a.AUTHOR_ID \r\n"
@@ -48,8 +53,7 @@ public class BookDaoImpl implements BookDao
 				rs = pstmt.executeQuery();
 
 				// 4.결과처리
-				while (rs.next())
-				{
+				while (rs.next()) {
 					// int bookId = rs.getInt("book_id");
 					String title = rs.getString("title");
 					String pubs = rs.getString("pubs");
@@ -57,73 +61,64 @@ public class BookDaoImpl implements BookDao
 					String authorName = rs.getString("author_name");
 					System.out.println(authorName + ":" + title + "/" + pubs + "(" + pub_date + ")");
 				}
-			} catch (SQLException e)
-			{
+			} catch (ClassNotFoundException e) {
+				System.out.println("error: 드라이버 로딩 실패 - " + e);
+			} catch (SQLException e) {
 				System.out.println("error:" + e);
-			} finally
-			{
+			} finally {
 				// 5. 자원정리
-				try
-				{
-					if (rs != null)
-					{
+				try {
+					if (rs != null) {
 						rs.close();
 					}
-					if (pstmt != null)
-					{
+					if (pstmt != null) {
 						pstmt.close();
 					}
-					if (conn != null)
-					{
+					if (conn != null) {
 						conn.close();
 					}
-				} catch (SQLException e)
-				{
+				} catch (SQLException e) {
 					System.out.println("error:" + e);
 				}
-			}return searchedCount==1;
+			}
 		}
-		
+		return false;
+	}
+
 	@Override
-	public List<BookVo> getList()
-	{
+	public List<BookVo> getList() {
 		Connection conn = null;
 		Statement stmt = null;
 		ResultSet rs = null;
 		// 데이터 전송을 위한 리스트
 		List<BookVo> list = new ArrayList<>();
 
-		try
-		{
+		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			String sql = " SELECT book_id, title, pubs, pub_date, author_id " + " FROM book " + " order by book_id ";
 
 			rs = stmt.executeQuery(sql);
 
-			while (rs.next())
-			{
+			while (rs.next()) {
 				BookVo bookVo = new BookVo(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4),
 						rs.getString(5));
 				list.add(bookVo);
 			}
-		} catch (SQLException e)
-		{
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
 		}
 		return list;
 	}
 
 	@Override
-	public BookVo get(String id)
-	{
+	public BookVo get(String id) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		BookVo bookVo = null;
 		ResultSet rs = null;
 
-		try
-		{
+		try {
 			conn = getConnection();
 			String sql = " SELECT book_id, title, pubs, pub_date, author_id " + " FROM book " + " WHERE book_id=?";
 			pstmt = conn.prepareStatement(sql);
@@ -131,97 +126,94 @@ public class BookDaoImpl implements BookDao
 
 			rs = pstmt.executeQuery();
 
-			if (rs.next())
-			{
+			if (rs.next()) {
 				bookVo = new BookVo(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
 			}
-		} catch (SQLException e)
-		{
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
-		} finally
-		{
-			try
-			{
+		} finally {
+			try {
 				if (rs != null)
 					rs.close();
 				if (pstmt != null)
 					pstmt.close();
 				if (conn != null)
 					conn.close();
-			} catch (Exception e)
-			{
+			} catch (Exception e) {
 				System.err.println("ERROR:" + e.getMessage());
 			}
 		}
 		return bookVo;
 	}
 
-	@Override
-	public boolean insert(BookVo bookVo)
-	{
+	@Override // insert
+	public boolean insert(BookVo bookVo) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
+		//ResultSet rs = null;
 		int insertedCount = 0;
-
-		try
-		{
+		String sql = "INSERT INTO book " + "VALUES" + "?, ?, ?, ?, ?)";
+		try {
 			conn = getConnection();
-			String sql = "INSERT INTO book " + "VALUES(SEQ_BOOK_ID.NEXTVAL, " + "?, ?, ?, ?)";
 			pstmt = conn.prepareStatement(sql);
-			//pstmt.setInt(1, bookVo.getBook_id());
-			pstmt.setString(1, bookVo.getTitle());
-			pstmt.setString(2, bookVo.getPubs());
-			pstmt.setString(3, bookVo.getPub_date());
-			pstmt.setString(4, bookVo.getAuthor_id());
-
-			insertedCount = pstmt.executeUpdate();
-		} catch (SQLException e)
-		{
+			// String sql = "INSERT INTO book " + "VALUES(SEQ_BOOK_ID.NEXTVAL, " + "?, ?, ?	, ?)";
+			String Book_id = "";
+			String Title = "";
+			String Pubs = "";
+			String Pub_date = "";
+			String Author_id = "";
+			
+			for (int i=0; i<10000; i++) {
+				
+				pstmt.setInt(1, bookVo.getBook_id());
+				pstmt.setString(2, bookVo.getTitle());
+				pstmt.setString(3, bookVo.getPubs());
+				pstmt.setString(4, bookVo.getPub_date());
+				pstmt.setString(5, bookVo.getAuthor_id());
+				pstmt.addBatch();
+				pstmt.clearParameters();
+				
+				insertedCount = pstmt.executeUpdate();
+			}
+			pstmt.executeBatch();
+			pstmt.clearBatch();
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
-		} finally
-		{
-			try
-			{
+		} finally {
+			try {
 				if (pstmt != null)
 					pstmt.close();
 				if (conn != null)
 					conn.close();
-			} catch (Exception e)
-			{
+			} catch (Exception e) {
 				System.err.println("ERROR:" + e.getMessage());
 			}
 		}
 		return insertedCount == 1;
 	}
 
-	@Override
-	public boolean delete(Long id)
-	{
+	@Override // delete
+	public boolean delete(Long id) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		int deletedCount = 0;
 
-		try
-		{
+		try {
 			conn = getConnection();
 			String sql = "DELETE FROM book WHERE book_id=?";
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setLong(1, id);
 
 			deletedCount = pstmt.executeUpdate();
-		} catch (SQLException e)
-		{
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
-		} finally
-		{
-			try
-			{
+		} finally {
+			try {
 				if (pstmt != null)
 					pstmt.close();
 				if (conn != null)
 					conn.close();
-			} catch (Exception e)
-			{
+			} catch (Exception e) {
 				System.err.println("ERROR:" + e.getMessage());
 			}
 		}
@@ -229,14 +221,12 @@ public class BookDaoImpl implements BookDao
 	}
 
 	@Override
-	public boolean update(BookVo bookVo)
-	{
+	public boolean update(BookVo bookVo) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		int updatedCount = 0;
 
-		try
-		{
+		try {
 			conn = getConnection();
 			String sql = "UPDATE BOOK SET " + "book_id=?, title=?, pubs, pub_date, author_id " + "WHERE book_id=?";
 			pstmt = conn.prepareStatement(sql);
@@ -247,19 +237,15 @@ public class BookDaoImpl implements BookDao
 			pstmt.setString(5, bookVo.getAuthor_id());
 
 			updatedCount = pstmt.executeUpdate();
-		} catch (SQLException e)
-		{
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
-		} finally
-		{
-			try
-			{
+		} finally {
+			try {
 				if (pstmt != null)
 					pstmt.close();
 				if (conn != null)
 					conn.close();
-			} catch (Exception e)
-			{
+			} catch (Exception e) {
 				System.err.println("ERROR:" + e.getMessage());
 			}
 		}
@@ -267,16 +253,14 @@ public class BookDaoImpl implements BookDao
 	}
 
 	@Override
-	public List<BookVo> getList(String text)
-	{
+	public List<BookVo> getList(String text) {
 		Connection conn = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		// 데이터 전송을 위한 리스트
 		List<BookVo> list = new ArrayList<>();
 
-		try
-		{
+		try {
 			conn = getConnection();
 
 			String sql = " SELECT b.book_id, \r\n" + "        b.title, \r\n" + "        b.pubs, \r\n"
@@ -287,14 +271,12 @@ public class BookDaoImpl implements BookDao
 			pstmt.setString(1, text); // 바인딩
 			rs = pstmt.executeQuery();
 
-			while (rs.next())
-			{
+			while (rs.next()) {
 				BookVo vo = new BookVo(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4),
 						rs.getString(5));
 				list.add(vo);
 			}
-		} catch (SQLException e)
-		{
+		} catch (SQLException e) {
 			System.err.println("ERROR:" + e.getMessage());
 		}
 
@@ -302,8 +284,7 @@ public class BookDaoImpl implements BookDao
 	}
 
 	@Override
-	public List<BookVo> select()
-	{
+	public List<BookVo> select() {
 		// TODO Auto-generated method stub
 		return null;
 	}
